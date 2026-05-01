@@ -1,0 +1,47 @@
+project:
+  name: SkinSight AI
+  version: "1.0.0"
+  seed: 42
+
+data:
+  image_size: [224, 224]
+  batch_size: 32
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+  classes:
+    - saine
+    - acne_inflammatoire
+    - acne_non_inflammatoire
+    - rosacee
+    - hyperpigmentation
+
+features:
+  pca_components: 512
+  extractors:
+    mobilenet: 1280
+    densenet: 1024
+    inception: 2048
+  concat_dim: 4352
+
+classifiers:
+  random_forest:
+    n_estimators: 300
+    max_depth: null
+    min_samples_split: 2
+    class_weight: balanced
+    n_jobs: -1
+  lightgbm:
+    n_estimators: 500
+    learning_rate: 0.05
+    max_depth: -1
+    num_leaves: 63
+    class_weight: balanced
+    n_jobs: -1
+
+paths:
+  data_raw: data/raw/
+  data_processed: data/processed/
+  models: models/
+  logs: logs/
