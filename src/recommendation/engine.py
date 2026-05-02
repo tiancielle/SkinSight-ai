@@ -20,7 +20,7 @@ RECOMMANDATIONS = {
             "SPF 30+ le matin"
         ],
         "urgence": "Aucune — continuer la routine de soin préventive.",
-        "emoji": "✅"
+        
     },
     "acne_inflammatoire": {
         "diagnostic": "Acné inflammatoire (papules / pustules)",
