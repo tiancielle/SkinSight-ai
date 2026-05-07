@@ -31,6 +31,15 @@ BASE_DIR  = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 DB_PATH   = os.path.join(BASE_DIR, "data", "history.db")
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+app.mount("/static", StaticFiles(directory=os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "app")), name="static")
+
+@app.get("/ui")
+def ui():
+    return FileResponse(os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "app", "index.html"))
+
 print(f"[SkinSight] BASE_DIR  = {BASE_DIR}")
 print(f"[SkinSight] MODEL_DIR = {MODEL_DIR}")
 print(f"[SkinSight] lightgbm  = {os.path.exists(os.path.join(MODEL_DIR, 'lightgbm.pkl'))}")
