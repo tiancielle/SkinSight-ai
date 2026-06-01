@@ -1,11 +1,12 @@
 """
 SkinSight AI — app/api/main.py
-FastAPI backend : /predict + /history + /stats
+FastAPI backend : /predict + /history + /stats + /patients
 """
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from typing import Optional
 import numpy as np
 import pickle
 import joblib
@@ -26,7 +27,6 @@ app.add_middleware(
 )
 
 # ── Chemins ────────────────────────────────────────────────────────────────────
-# Chemin absolu vers la racine — fonctionne peu importe depuis où uvicorn est lancé
 BASE_DIR  = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 DB_PATH   = os.path.join(BASE_DIR, "data", "history.db")
@@ -34,7 +34,7 @@ DB_PATH   = os.path.join(BASE_DIR, "data", "history.db")
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-app.mount("/static", StaticFiles(directory=os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "app")), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "app", "static")), name="static")
 
 @app.get("/ui")
 def ui():
@@ -168,21 +168,49 @@ def init_db():
     conn.execute("""CREATE TABLE IF NOT EXISTS analyses
         (id INTEGER PRIMARY KEY AUTOINCREMENT,
          date TEXT, pathologie TEXT, confiance REAL, scores TEXT)""")
-    conn.commit(); conn.close()
+    
+    # 1. Création table patients
+    conn.execute("""CREATE TABLE IF NOT EXISTS patients
+        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+         nom TEXT, prenom TEXT, age INTEGER,
+         sexe TEXT, phototype TEXT, notes TEXT,
+         date_creation TEXT)""")
+    
+    # Ajouter colonne patient_id à analyses si elle n'existe pas
+    try:
+        conn.execute("ALTER TABLE analyses ADD COLUMN patient_id INTEGER")
+    except:
+        pass  # colonne déjà existante
+        
+    conn.commit()
+    conn.close()
 
-def save_analysis(pathologie, confiance, scores):
+def save_analysis(pathologie, confiance, scores, patient_id=None):
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("INSERT INTO analyses (date,pathologie,confiance,scores) VALUES (?,?,?,?)",
-                 (datetime.now().strftime("%Y-%m-%d %H:%M"), pathologie, confiance, str(scores)))
-    conn.commit(); conn.close()
+    conn.execute(
+        "INSERT INTO analyses (date,pathologie,confiance,scores,patient_id) VALUES (?,?,?,?,?)",
+        (datetime.now().strftime("%Y-%m-%d %H:%M"), pathologie, confiance, str(scores), patient_id)
+    )
+    conn.commit()
+    conn.close()
 
 def load_history(limit=20):
     conn = sqlite3.connect(DB_PATH)
-    rows = conn.execute(
-        "SELECT date,pathologie,confiance FROM analyses ORDER BY id DESC LIMIT ?", (limit,)
-    ).fetchall()
+    rows = conn.execute("""
+        SELECT a.date, a.pathologie, a.confiance, 
+               p.prenom, p.nom
+        FROM analyses a
+        LEFT JOIN patients p ON a.patient_id = p.id
+        ORDER BY a.id DESC LIMIT ?
+    """, (limit,)).fetchall()
     conn.close()
-    return [{"date": r[0], "pathologie": r[1], "pathologie_fr": CLASSES_FR.get(r[1], r[1]), "confiance": round(r[2], 1)} for r in rows]
+    return [{
+        "date": r[0],
+        "pathologie": r[1],
+        "pathologie_fr": CLASSES_FR.get(r[1], r[1]),
+        "confiance": round(r[2], 1),
+        "patient": f"{r[3]} {r[4]}".strip() if r[3] else "Sans patient"
+    } for r in rows]
 
 def get_stats():
     conn = sqlite3.connect(DB_PATH)
@@ -234,9 +262,21 @@ def run_prediction(image: Image.Image):
 
     reduced = pca.transform(feats)
     proba   = model.predict_proba(reduced)[0]
-    idx     = np.argmax(proba)
+    proba[CLASSES.index('acne_inflammatoire')] *= 0.75
+    proba = proba / proba.sum()  # renormaliser
+    idx = np.argmax(proba)
     return CLASSES[idx], float(proba[idx])*100, {c: round(float(p)*100, 2) for c,p in zip(CLASSES, proba)}
 
+def get_severite(pathologie, confiance):
+    if pathologie == "saine":
+        return "Aucune pathologie détectée"
+    if confiance >= 85:
+        return "Sévère"
+    elif confiance >= 65:
+        return "Modéré"
+    else:
+        return "Léger"
+    
 # ── Startup ────────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def startup():
@@ -248,18 +288,19 @@ def root():
     return {"status": "ok", "app": "SkinSight AI", "version": "1.0.0"}
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+async def predict(file: UploadFile = File(...), patient_id: Optional[int] = None):
     if not file.content_type.startswith("image/"):
         raise HTTPException(400, "Le fichier doit être une image (JPG, PNG).")
     try:
         contents = await file.read()
         image    = Image.open(io.BytesIO(contents))
         pathologie, confiance, scores = run_prediction(image)
-        save_analysis(pathologie, confiance, scores)
+        save_analysis(pathologie, confiance, scores, patient_id)
         return {
             "pathologie":    pathologie,
             "pathologie_fr": CLASSES_FR[pathologie],
             "confiance":     round(confiance, 1),
+            "severite":      get_severite(pathologie, confiance),
             "scores":        {CLASSES_FR[c]: round(v, 1) for c, v in scores.items()},
             "scores_raw":    scores,
             "recommandations": RECOMMENDATIONS.get(pathologie, []),
@@ -285,6 +326,58 @@ def clear_history():
     conn.execute("DELETE FROM analyses")
     conn.commit(); conn.close()
     return {"status": "cleared"}
+
+# ── Endpoints Patients ────────────────────────────────────────────────────────
+@app.get("/patients")
+def get_patients():
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute("SELECT * FROM patients ORDER BY id DESC").fetchall()
+    conn.close()
+    return {"patients": [
+        {"id":r[0],"nom":r[1],"prenom":r[2],"age":r[3],
+         "sexe":r[4],"phototype":r[5],"notes":r[6],"date_creation":r[7]}
+        for r in rows
+    ]}
+
+@app.post("/patients")
+def create_patient(data: dict):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.execute(
+        "INSERT INTO patients (nom,prenom,age,sexe,phototype,notes,date_creation) VALUES (?,?,?,?,?,?,?)",
+        (data.get("nom"), data.get("prenom"), data.get("age"),
+         data.get("sexe"), data.get("phototype"), data.get("notes"),
+         datetime.now().strftime("%Y-%m-%d"))
+    )
+    conn.commit()
+    patient_id = cur.lastrowid
+    conn.close()
+    return {"id": patient_id, "status": "created"}
+
+@app.get("/patients/{patient_id}")
+def get_patient(patient_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute("SELECT * FROM patients WHERE id=?", (patient_id,)).fetchone()
+    analyses = conn.execute(
+        "SELECT date,pathologie,confiance FROM analyses WHERE patient_id=? ORDER BY id DESC",
+        (patient_id,)
+    ).fetchall()
+    conn.close()
+    if not row:
+        raise HTTPException(404, "Patient non trouvé")
+    return {
+        "patient": {"id":row[0],"nom":row[1],"prenom":row[2],"age":row[3],
+                    "sexe":row[4],"phototype":row[5],"notes":row[6],"date_creation":row[7]},
+        "analyses": [{"date":a[0],"pathologie":a[1],"pathologie_fr":CLASSES_FR.get(a[1],a[1]),"confiance":round(a[2], 1)} for a in analyses]
+    }
+
+@app.delete("/patients/{patient_id}")
+def delete_patient(patient_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("DELETE FROM patients WHERE id=?", (patient_id,))
+    conn.execute("UPDATE analyses SET patient_id=NULL WHERE patient_id=?", (patient_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "deleted"}
 
 # ── Lancement ──────────────────────────────────────────────────────────────────
 # uvicorn app.api.main:app --reload --port 8000
