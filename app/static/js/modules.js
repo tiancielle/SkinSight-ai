@@ -286,3 +286,27 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   buildLegend();
 });
+
+async function exportCSV() {
+  try {
+    const res  = await fetch(`${API}/history?limit=1000`);
+    const data = await res.json();
+    if (!data.history.length) return alert('Aucune analyse à exporter.');
+
+    let csv = 'Date,Pathologie,Confiance (%),Sévérité,Patient\n';
+    data.history.forEach(h => {
+      const severite = h.confiance >= 85 ? 'Sévère' : h.confiance >= 65 ? 'Modéré' : 'Léger';
+      csv += `"${h.date}","${h.pathologie_fr}","${h.confiance}","${severite}","${h.patient || '—'}"\n`;
+    });
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `SkinSight_historique_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Erreur export : ' + e.message);
+  }
+}

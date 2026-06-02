@@ -124,7 +124,31 @@ async function openPatient(id) {
       <div class="patient-header">
         <div class="patient-avatar-lg">${p.prenom[0]}${p.nom[0]}</div>
         <div style="flex:1">
-          <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--txt)">${p.prenom} ${p.nom}</div>
+          <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+            <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--txt)">${p.prenom} ${p.nom}</div>
+            ${analyses.length ? `<span style="font-size:.68rem;font-weight:500;padding:.2rem .7rem;border-radius:50px;background:${PATHO_COLORS[analyses[0].pathologie]}20;color:${PATHO_COLORS[analyses[0].pathologie]};border:1px solid ${PATHO_COLORS[analyses[0].pathologie]}50">${analyses[0].pathologie_fr}</span>` : ''}
+            ${analyses.length > 1 ? (() => {
+              const last    = analyses[0].confiance;
+              const prev    = analyses[1].confiance;
+              const diff    = last - prev;
+              const samePatho = analyses[0].pathologie === analyses[1].pathologie;
+              
+              let arrow, color, label;
+              if (analyses[0].pathologie === 'saine') {
+                arrow = '✓'; color = '#7a9e87'; label = 'Guéri';
+              } else if (!samePatho && analyses[1].pathologie !== 'saine') {
+                arrow = '↔'; color = '#d4a882'; label = 'Changement';
+              } else if (diff > 5) {
+                arrow = '↑'; color = '#c47c5a'; label = 'Aggravation';
+              } else if (diff < -5) {
+                arrow = '↓'; color = '#7a9e87'; label = 'Amélioration';
+              } else {
+                arrow = '→'; color = '#9b7fa6'; label = 'Stable';
+              }
+              
+              return `<span style="font-size:.68rem;font-weight:600;padding:.2rem .7rem;border-radius:50px;background:${color}20;color:${color};border:1px solid ${color}50">${arrow} ${label}</span>`;
+            })() : ''}
+          </div>
           <div style="font-size:.78rem;color:var(--txt2);margin-top:.2rem">${p.age} ans · ${p.sexe === 'M' ? 'Homme' : 'Femme'} · Phototype ${p.phototype} — <em>${photoDesc}</em></div>
           ${p.notes ? `<div style="font-size:.73rem;color:var(--txt3);margin-top:.3rem">${p.notes}</div>` : ''}
         </div>
@@ -191,7 +215,7 @@ async function openPatient(id) {
               <button class="moment-tab" onclick="switchPatientRoutine('soir', this)">Soir</button>
             </div>
             <div id="pt-routine-matin" style="display:block;margin-top:.8rem">
-              ${(ROUTINES?.[lastPathologie]?.matin || []).map((s,i) => `
+              ${(window.ROUTINES?.[lastPathologie]?.matin || []).map((s,i) => `
                 <div class="routine-step-full">
                   <div class="rsf-num" style="background:${col}18;border-color:${col}40;color:${col}">${i+1}</div>
                   <div>
@@ -202,7 +226,7 @@ async function openPatient(id) {
                 </div>`).join('')}
             </div>
             <div id="pt-routine-soir" style="display:none;margin-top:.8rem">
-              ${(ROUTINES?.[lastPathologie]?.soir || []).map((s,i) => `
+              ${(window.ROUTINES?.[lastPathologie]?.soir || []).map((s,i) => `
                 <div class="routine-step-full">
                   <div class="rsf-num" style="background:${col}18;border-color:${col}40;color:${col}">${i+1}</div>
                   <div>

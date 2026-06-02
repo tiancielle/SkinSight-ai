@@ -129,8 +129,9 @@
             <button class="btn btn-main" id="btn-pdf" onclick="generatePDF()" style="display:none">
               Générer rapport PDF
             </button>
-        </div>
-      </div>
+          </div>
+        </div><!-- ← FIN result-box (CORRIGÉ) -->
+      </div><!-- ← FIN page-analyse -->
 
       <!-- PAGE MA ROUTINE -->
       <div class="page" id="page-routine">
@@ -149,6 +150,9 @@
       <div class="page" id="page-historique">
         <div class="page-title">Historique</div>
         <div class="page-sub">Analyses récentes</div>
+        <div style="margin-bottom:.75rem">
+          <button class="btn btn-ghost" onclick="exportCSV()">⬇ Exporter CSV</button>
+        </div>
         <div class="hist-list" id="hist-list">
           <div class="empty-state">Chargement…</div>
         </div>
@@ -191,15 +195,9 @@
         </div>
         <div class="warn-box" style="margin-top:.8rem">Résultat indicatif — à confirmer par un examen clinique.</div>
         <div class="warn-box">Résultat indicatif — à confirmer par un examen clinique.</div>
-        <!-- <div style="margin-top:.75rem">
-          <button class="btn btn-main" id="btn-pdf" onclick="generatePDF()" style="display:none">
-            Générer rapport PDF
-          </button> -->
-        </div>
       </div>
 
-
-            <!-- PAGE PATIENTS -->
+      <!-- PAGE PATIENTS -->
       <div class="page" id="page-patients">
         <div class="page-title">Dossiers patients</div>
         <div class="page-sub">Gestion et suivi longitudinal des patients</div>
@@ -242,6 +240,7 @@
         <div id="patients-list"></div>
         <div id="patient-fiche" style="display:none"></div>
       </div>
+
       <!-- PAGE WEBCAM AR -->
       <div class="page" id="page-webcam">
         <div class="page-title">Webcam AR</div>

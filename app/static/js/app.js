@@ -1,4 +1,3 @@
-
 // ── Navigation ────────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
   analyse:    'Tableau de bord',
@@ -10,8 +9,6 @@ const PAGE_TITLES = {
   patients:   'Dossiers patients',
 };
 
-
-
 function navigate(pageId, navEl) {
   const page = document.getElementById('page-' + pageId);
   if (!page) return;
@@ -22,8 +19,9 @@ function navigate(pageId, navEl) {
   const title = document.getElementById('topbar-title');
   if (title) title.textContent = PAGE_TITLES[pageId] || '';
   if (pageId === 'historique') loadHistory();
-  if (pageId === 'patients') loadPatients();
-  if (pageId === 'routine') initRoutinePage();
+  if (pageId === 'patients')   loadPatients();
+  if (pageId === 'routine')    initRoutinePage();
+  if (pageId === 'fiches')     buildFiches();  // ← ajouter
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
@@ -99,15 +97,10 @@ function initProfile() {
   const name = localStorage.getItem('skinsight_name');
   const skin = localStorage.getItem('skinsight_skin');
   if (name) renderProfileBadge(name, skin || '—');
-  // if (name) {
-  //   renderProfileBadge(name, skin || '—');
-  // }
-  // Supprime le setTimeout qui ouvrait le modal automatiquement
-  // (causait aussi des interférences à l'init)
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-buildFiches();
+// buildFiches();  ← SUPPRIMÉ : plus appelé au chargement initial
 refreshStats();
 setLastStat();
 setInterval(refreshStats, 30000);
