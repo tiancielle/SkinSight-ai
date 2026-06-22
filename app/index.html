@@ -16,7 +16,7 @@
     <div class="nav-item active" onclick="navigate('analyse',this)"><span class="nav-dot"></span>Analyse</div>
     
     <div class="nav-item" onclick="navigate('historique',this)"><span class="nav-dot"></span>Historique</div>
-    <div class="nav-item" onclick="navigate('patients',this)"><span class="nav-dot"></span>Patients</div>
+    <div class="nav-item" onclick="navigate('patients',this)"><span class="nav-dot"></span>Patients <span id="patients-count" style="font-size:.63rem;background:var(--terra-l);color:var(--terra);padding:.1rem .4rem;border-radius:50px;margin-left:.3rem"></span></div>
     <div class="nav-item" onclick="navigate('fiches',this)"><span class="nav-dot"></span>Fiches</div>
     
     <div class="nav-item" onclick="navigate('webcam',this)"><span class="nav-dot"></span>Webcam AR</div>
@@ -150,7 +150,10 @@
       <div class="page" id="page-historique">
         <div class="page-title">Historique</div>
         <div class="page-sub">Analyses récentes</div>
-        <div style="margin-bottom:.75rem">
+        <div style="margin-bottom:.75rem;display:flex;gap:.5rem;align-items:center">
+          <input type="text" id="hist-search" class="modal-input" 
+                 placeholder="Rechercher par pathologie ou patient…" 
+                 style="margin:0;flex:1" oninput="filterHistory(this.value)">
           <button class="btn btn-ghost" onclick="exportCSV()">⬇ Exporter CSV</button>
         </div>
         <div class="hist-list" id="hist-list">
@@ -209,8 +212,8 @@
         <div id="patient-form-box" style="display:none;background:var(--bg2);border:1px solid var(--brd);border-radius:16px;padding:1.2rem;margin-bottom:1rem">
           <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:1rem">Nouveau patient</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
-            <div><label class="modal-label">Nom</label><input class="modal-input" id="pt-nom" placeholder="Dupont"></div>
-            <div><label class="modal-label">Prénom</label><input class="modal-input" id="pt-prenom" placeholder="Jean"></div>
+            <div><label class="modal-label">Nom</label><input class="modal-input" id="pt-nom" placeholder="Nom"></div>
+            <div><label class="modal-label">Prénom</label><input class="modal-input" id="pt-prenom" placeholder="Prénom"></div>
             <div><label class="modal-label">Âge</label><input class="modal-input" id="pt-age" type="number" min="1" max="120" placeholder="45"></div>
             <div><label class="modal-label">Sexe</label>
               <select class="modal-input" id="pt-sexe">

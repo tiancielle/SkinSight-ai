@@ -287,6 +287,17 @@ document.addEventListener('DOMContentLoaded', () => {
   buildLegend();
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Recherche dans l'historique
+// ═══════════════════════════════════════════════════════════════════════════════
+function filterHistory(query) {
+  const q = query.toLowerCase().trim();
+  document.querySelectorAll('.hist-row').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = !q || text.includes(q) ? '' : 'none';
+  });
+}
+
 async function exportCSV() {
   try {
     const res  = await fetch(`${API}/history?limit=1000`);

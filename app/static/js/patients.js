@@ -215,7 +215,7 @@ async function openPatient(id) {
               <button class="moment-tab" onclick="switchPatientRoutine('soir', this)">Soir</button>
             </div>
             <div id="pt-routine-matin" style="display:block;margin-top:.8rem">
-              ${(window.ROUTINES?.[lastPathologie]?.matin || []).map((s,i) => `
+              ${(ROUTINES?.[lastPathologie]?.matin || []).map((s,i) => `
                 <div class="routine-step-full">
                   <div class="rsf-num" style="background:${col}18;border-color:${col}40;color:${col}">${i+1}</div>
                   <div>
@@ -226,7 +226,7 @@ async function openPatient(id) {
                 </div>`).join('')}
             </div>
             <div id="pt-routine-soir" style="display:none;margin-top:.8rem">
-              ${(window.ROUTINES?.[lastPathologie]?.soir || []).map((s,i) => `
+              ${(ROUTINES?.[lastPathologie]?.soir || []).map((s,i) => `
                 <div class="routine-step-full">
                   <div class="rsf-num" style="background:${col}18;border-color:${col}40;color:${col}">${i+1}</div>
                   <div>

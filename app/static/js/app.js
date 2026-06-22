@@ -34,6 +34,14 @@ async function refreshStats() {
     document.getElementById('sb-total').textContent   = data.total + ' analyse(s)';
     document.getElementById('sb-avg').textContent     = `Précision moy. ${data.avg_confiance}%`;
   } catch {}
+
+  // ← Compteur patients
+  try {
+    const res2 = await fetch(`${API}/patients`);
+    const data2 = await res2.json();
+    const count = document.getElementById('patients-count');
+    if (count && data2.patients.length) count.textContent = data2.patients.length;
+  } catch {}
 }
 
 async function setLastStat() {
